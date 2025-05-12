@@ -1,6 +1,8 @@
 # Mikel Broström 🔥 Yolo Tracking 🧾 AGPL-3.0 license
 
 import argparse
+import time
+
 import cv2
 import numpy as np
 from functools import partial
@@ -24,10 +26,11 @@ from ultralytics.data.utils import VID_FORMATS
 from ultralytics.utils.plotting import save_one_box
 
 
+
+
 def on_predict_start(predictor, persist=False):
     """
-    Initialize trackers for object tracking during prediction.
-
+    Initialize trackers for object tracking during predictio
     Args:
         predictor (object): The predictor object to initialize trackers for.
         persist (bool, optional): Whether to persist the trackers if they already exist. Defaults to False.
@@ -60,11 +63,11 @@ def run(args):
 
     if args.imgsz is None:
         args.imgsz = default_imgsz(args.yolo_model)
-    yolo = YOLO(
-        args.yolo_model if is_ultralytics_model(args.yolo_model)
-        else 'yolov8n.pt',
-    )
-
+    # yolo = YOLO(
+    #     args.yolo_model if is_ultralytics_model(args.yolo_model)
+    #     else 'yolov8n.pt',
+    # )
+    yolo = YOLO(args.yolo_model)
     results = yolo.track(
         source=args.source,
         conf=args.conf,
@@ -89,25 +92,25 @@ def run(args):
 
     yolo.add_callback('on_predict_start', partial(on_predict_start, persist=True))
 
-    if not is_ultralytics_model(args.yolo_model):
-        # replace yolov8 model
-        m = get_yolo_inferer(args.yolo_model)
-        yolo_model = m(model=args.yolo_model, device=yolo.predictor.device,
-                       args=yolo.predictor.args)
-        yolo.predictor.model = yolo_model
-
-        # If current model is YOLOX, change the preprocess and postprocess
-        if not is_ultralytics_model(args.yolo_model):
-            # add callback to save image paths for further processing
-            yolo.add_callback(
-                "on_predict_batch_start",
-                lambda p: yolo_model.update_im_paths(p)
-            )
-            yolo.predictor.preprocess = (
-                lambda imgs: yolo_model.preprocess(im=imgs))
-            yolo.predictor.postprocess = (
-                lambda preds, im, im0s:
-                yolo_model.postprocess(preds=preds, im=im, im0s=im0s))
+    # if not is_ultralytics_model(args.yolo_model):
+    #     # replace yolov8 model
+    #     m = get_yolo_inferer(args.yolo_model)
+    #     yolo_model = m(model=args.yolo_model, device=yolo.predictor.device,
+    #                    args=yolo.predictor.args)
+    #     yolo.predictor.model = yolo_model
+    #
+    #     # If current model is YOLOX, change the preprocess and postprocess
+    #     if not is_ultralytics_model(args.yolo_model):
+    #         # add callback to save image paths for further processing
+    #         yolo.add_callback(
+    #             "on_predict_batch_start",
+    #             lambda p: yolo_model.update_im_paths(p)
+    #         )
+    #         yolo.predictor.preprocess = (
+    #             lambda imgs: yolo_model.preprocess(im=imgs))
+    #         yolo.predictor.postprocess = (
+    #             lambda preds, im, im0s:
+    #             yolo_model.postprocess(preds=preds, im=im, im0s=im0s))
 
     # store custom args in predictor
     yolo.predictor.custom_args = args
@@ -182,6 +185,16 @@ def parse_opt():
     return opt
 
 
-if __name__ == "__main__":
+def main():
     opt = parse_opt()
+    print(opt)
+    start = time.perf_counter()
     run(opt)
+    end = time.perf_counter()
+    fps = 1 / (end - start)
+    print(f"total time taken: {end - start:.2f} seconds")
+    print(f"Achieved FPS: {fps:.2f}")
+
+
+if __name__ == "__main__":
+    main()
