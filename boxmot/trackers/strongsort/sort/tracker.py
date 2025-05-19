@@ -57,7 +57,7 @@ class Tracker:
 
         self.tracks = []
         self._next_id = 1
-        self.cmc = get_cmc_method('ecc')()
+        self.cmc = get_cmc_method("ecc")()
 
     def predict(self):
         """Propagate track state distributions one time step forward.
@@ -123,16 +123,20 @@ class Tracker:
 
         # Split track set into confirmed and unconfirmed tracks.
         confirmed_tracks = [i for i, t in enumerate(self.tracks) if t.is_confirmed()]
-        unconfirmed_tracks = [i for i, t in enumerate(self.tracks) if not t.is_confirmed()]
+        unconfirmed_tracks = [
+            i for i, t in enumerate(self.tracks) if not t.is_confirmed()
+        ]
 
         # Associate confirmed tracks using appearance features.
-        matches_a, unmatched_tracks_a, unmatched_detections = linear_assignment.matching_cascade(
-            gated_metric,
-            self.metric.matching_threshold,
-            self.max_age,
-            self.tracks,
-            detections,
-            confirmed_tracks,
+        matches_a, unmatched_tracks_a, unmatched_detections = (
+            linear_assignment.matching_cascade(
+                gated_metric,
+                self.metric.matching_threshold,
+                self.max_age,
+                self.tracks,
+                detections,
+                confirmed_tracks,
+            )
         )
 
         # Associate remaining tracks together with unconfirmed tracks using IOU.
@@ -143,13 +147,15 @@ class Tracker:
             k for k in unmatched_tracks_a if self.tracks[k].time_since_update != 1
         ]
 
-        matches_b, unmatched_tracks_b, unmatched_detections = linear_assignment.min_cost_matching(
-            iou_matching.iou_cost,
-            self.max_iou_dist,
-            self.tracks,
-            detections,
-            iou_track_candidates,
-            unmatched_detections,
+        matches_b, unmatched_tracks_b, unmatched_detections = (
+            linear_assignment.min_cost_matching(
+                iou_matching.iou_cost,
+                self.max_iou_dist,
+                self.tracks,
+                detections,
+                iou_track_candidates,
+                unmatched_detections,
+            )
         )
 
         matches = matches_a + matches_b

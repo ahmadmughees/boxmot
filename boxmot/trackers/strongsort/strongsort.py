@@ -30,6 +30,7 @@ class StrongSort(object):
         mc_lambda (float, optional): Weight for motion consistency in the track state estimation. Higher values give more weight to motion information.
         ema_alpha (float, optional): Alpha value for exponential moving average (EMA) update of appearance features. Controls the contribution of new and old embeddings in the ReID model.
     """
+
     def __init__(
         self,
         reid_weights: Path,
@@ -45,7 +46,6 @@ class StrongSort(object):
         mc_lambda=0.98,
         ema_alpha=0.9,
     ):
-
         self.per_class = per_class
         self.min_conf = min_conf
         self.model = ReidAutoBackend(
@@ -60,22 +60,24 @@ class StrongSort(object):
             mc_lambda=mc_lambda,
             ema_alpha=ema_alpha,
         )
-        self.cmc = get_cmc_method('ecc')()
+        self.cmc = get_cmc_method("ecc")()
 
     @BaseTracker.per_class_decorator
-    def update(self, dets: np.ndarray, img: np.ndarray, embs: np.ndarray = None) -> np.ndarray:
-        assert isinstance(
-            dets, np.ndarray
-        ), f"Unsupported 'dets' input format '{type(dets)}', valid format is np.ndarray"
-        assert isinstance(
-            img, np.ndarray
-        ), f"Unsupported 'img' input format '{type(img)}', valid format is np.ndarray"
-        assert (
-            len(dets.shape) == 2
-        ), "Unsupported 'dets' dimensions, valid number of dimensions is two"
-        assert (
-            dets.shape[1] == 6
-        ), "Unsupported 'dets' 2nd dimension lenght, valid lenghts is 6"
+    def update(
+        self, dets: np.ndarray, img: np.ndarray, embs: np.ndarray = None
+    ) -> np.ndarray:
+        assert isinstance(dets, np.ndarray), (
+            f"Unsupported 'dets' input format '{type(dets)}', valid format is np.ndarray"
+        )
+        assert isinstance(img, np.ndarray), (
+            f"Unsupported 'img' input format '{type(img)}', valid format is np.ndarray"
+        )
+        assert len(dets.shape) == 2, (
+            "Unsupported 'dets' dimensions, valid number of dimensions is two"
+        )
+        assert dets.shape[1] == 6, (
+            "Unsupported 'dets' 2nd dimension lenght, valid lenghts is 6"
+        )
 
         dets = np.hstack([dets, np.arange(len(dets)).reshape(-1, 1)])
         remain_inds = dets[:, 4] >= self.min_conf
@@ -99,9 +101,10 @@ class StrongSort(object):
 
         tlwh = xyxy2tlwh(xyxy)
         detections = [
-            Detection(box, conf, cls, det_ind, feat) for
-            box, conf, cls, det_ind, feat in
-            zip(tlwh, confs, clss, det_ind, features)
+            Detection(box, conf, cls, det_ind, feat)
+            for box, conf, cls, det_ind, feat in zip(
+                tlwh, confs, clss, det_ind, features
+            )
         ]
 
         # update tracker
@@ -122,7 +125,9 @@ class StrongSort(object):
             det_ind = track.det_ind
 
             outputs.append(
-                np.concatenate(([x1, y1, x2, y2], [id], [conf], [cls], [det_ind])).reshape(1, -1)
+                np.concatenate(
+                    ([x1, y1, x2, y2], [id], [conf], [cls], [det_ind])
+                ).reshape(1, -1)
             )
         if len(outputs) > 0:
             return np.concatenate(outputs)

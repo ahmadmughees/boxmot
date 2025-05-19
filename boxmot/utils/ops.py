@@ -55,8 +55,8 @@ def xywh2tlwh(x):
     y = x.clone() if isinstance(x, torch.Tensor) else np.copy(x)
     y[..., 0] = x[..., 0] - x[..., 2] / 2.0  # xc --> t
     y[..., 1] = x[..., 1] - x[..., 3] / 2.0  # yc --> l
-    y[..., 2] = x[..., 2]                    # width
-    y[..., 3] = x[..., 3]                    # height
+    y[..., 2] = x[..., 2]  # width
+    y[..., 3] = x[..., 3]  # height
     return y
 
 
@@ -115,10 +115,10 @@ def xyxy2xysr(x):
     y = x.clone() if isinstance(x, torch.Tensor) else np.copy(x)
     w = y[..., 2] - y[..., 0]  # width
     h = y[..., 3] - y[..., 1]  # height
-    y[..., 0] = y[..., 0] + w / 2.0            # x center
-    y[..., 1] = y[..., 1] + h / 2.0            # y center
-    y[..., 2] = w * h                                  # scale (area)
-    y[..., 3] = w / (h + 1e-6)                         # aspect ratio
+    y[..., 0] = y[..., 0] + w / 2.0  # x center
+    y[..., 1] = y[..., 1] + h / 2.0  # y center
+    y[..., 2] = w * h  # scale (area)
+    y[..., 3] = w / (h + 1e-6)  # aspect ratio
     y = y.reshape((4, 1))
     return y
 
@@ -129,14 +129,14 @@ def letterbox(
     color: Tuple[int, int, int] = (114, 114, 114),
     auto: bool = True,
     scaleFill: bool = False,
-    scaleup: bool = True
+    scaleup: bool = True,
 ) -> Tuple[np.ndarray, Tuple[float, float], Tuple[float, float]]:
     """
     Resizes an image to a new shape while maintaining aspect ratio, padding with color if needed.
 
     Args:
         img (np.ndarray): The original image in BGR format.
-        new_shape (Union[int, Tuple[int, int]], optional): Desired size as an integer (e.g., 640) 
+        new_shape (Union[int, Tuple[int, int]], optional): Desired size as an integer (e.g., 640)
             or tuple (width, height). Default is (640, 640).
         color (Tuple[int, int, int], optional): Padding color in BGR format. Default is (114, 114, 114).
         auto (bool, optional): If True, adjusts padding to be a multiple of 32. Default is True.
@@ -183,6 +183,8 @@ def letterbox(
     # Add border to the image
     top, bottom = int(round(dh - 0.1)), int(round(dh + 0.1))
     left, right = int(round(dw - 0.1)), int(round(dw + 0.1))
-    img = cv2.copyMakeBorder(img, top, bottom, left, right, cv2.BORDER_CONSTANT, value=color)
+    img = cv2.copyMakeBorder(
+        img, top, bottom, left, right, cv2.BORDER_CONSTANT, value=color
+    )
 
     return img, ratio, (dw, dh)

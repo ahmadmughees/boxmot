@@ -60,9 +60,9 @@ class AssociationFunction:
         h = np.maximum(0.0, yy2 - yy1)
         wh = w * h
         o = wh / (
-                (bboxes1[..., 2] - bboxes1[..., 0]) * (bboxes1[..., 3] - bboxes1[..., 1]) +
-                (bboxes2[..., 2] - bboxes2[..., 0]) * (bboxes2[..., 3] - bboxes2[..., 1]) -
-                wh
+            (bboxes1[..., 2] - bboxes1[..., 0]) * (bboxes1[..., 3] - bboxes1[..., 1])
+            + (bboxes2[..., 2] - bboxes2[..., 0]) * (bboxes2[..., 3] - bboxes2[..., 1])
+            - wh
         )
         return o
 
@@ -114,8 +114,12 @@ class AssociationFunction:
         inter_h = np.maximum(0.0, inter_y2 - inter_y1)
         inter_area = inter_w * inter_h
 
-        area1 = (bboxes1[..., 2] - bboxes1[..., 0]) * (bboxes1[..., 3] - bboxes1[..., 1])  # Shape: (N, 1)
-        area2 = (bboxes2[..., 2] - bboxes2[..., 0]) * (bboxes2[..., 3] - bboxes2[..., 1])  # Shape: (1, M)
+        area1 = (bboxes1[..., 2] - bboxes1[..., 0]) * (
+            bboxes1[..., 3] - bboxes1[..., 1]
+        )  # Shape: (N, 1)
+        area2 = (bboxes2[..., 2] - bboxes2[..., 0]) * (
+            bboxes2[..., 3] - bboxes2[..., 1]
+        )  # Shape: (1, M)
 
         union_area = area1 + area2 - inter_area
 
@@ -146,8 +150,12 @@ class AssociationFunction:
         wh = w * h  # Intersection area
 
         # Compute areas of individual boxes
-        area1 = (bboxes1[..., 2] - bboxes1[..., 0]) * (bboxes1[..., 3] - bboxes1[..., 1])
-        area2 = (bboxes2[..., 2] - bboxes2[..., 0]) * (bboxes2[..., 3] - bboxes2[..., 1])
+        area1 = (bboxes1[..., 2] - bboxes1[..., 0]) * (
+            bboxes1[..., 3] - bboxes1[..., 1]
+        )
+        area2 = (bboxes2[..., 2] - bboxes2[..., 0]) * (
+            bboxes2[..., 3] - bboxes2[..., 1]
+        )
 
         # Union area
         union_area = area1 + area2 - wh
@@ -169,16 +177,26 @@ class AssociationFunction:
         return giou
 
     def centroid_batch(self, bboxes1, bboxes2) -> np.ndarray:
-        centroids1 = np.stack(((bboxes1[..., 0] + bboxes1[..., 2]) / 2,
-                               (bboxes1[..., 1] + bboxes1[..., 3]) / 2), axis=-1)
-        centroids2 = np.stack(((bboxes2[..., 0] + bboxes2[..., 2]) / 2,
-                               (bboxes2[..., 1] + bboxes2[..., 3]) / 2), axis=-1)
+        centroids1 = np.stack(
+            (
+                (bboxes1[..., 0] + bboxes1[..., 2]) / 2,
+                (bboxes1[..., 1] + bboxes1[..., 3]) / 2,
+            ),
+            axis=-1,
+        )
+        centroids2 = np.stack(
+            (
+                (bboxes2[..., 0] + bboxes2[..., 2]) / 2,
+                (bboxes2[..., 1] + bboxes2[..., 3]) / 2,
+            ),
+            axis=-1,
+        )
 
         centroids1 = np.expand_dims(centroids1, 1)
         centroids2 = np.expand_dims(centroids2, 0)
 
         distances = np.sqrt(np.sum((centroids1 - centroids2) ** 2, axis=-1))
-        norm_factor = np.sqrt(self.w ** 2 + self.h ** 2)
+        norm_factor = np.sqrt(self.w**2 + self.h**2)
         normalized_distances = distances / norm_factor
 
         return 1 - normalized_distances
@@ -191,7 +209,7 @@ class AssociationFunction:
         centroids2 = np.expand_dims(centroids2, 0)
 
         distances = np.sqrt(np.sum((centroids1 - centroids2) ** 2, axis=-1))
-        norm_factor = np.sqrt(self.w ** 2 + self.h ** 2)
+        norm_factor = np.sqrt(self.w**2 + self.h**2)
         normalized_distances = distances / norm_factor
 
         return 1 - normalized_distances
@@ -221,8 +239,12 @@ class AssociationFunction:
         wh = w * h
 
         # Calculate IoU
-        area1 = (bboxes1[..., 2] - bboxes1[..., 0]) * (bboxes1[..., 3] - bboxes1[..., 1])
-        area2 = (bboxes2[..., 2] - bboxes2[..., 0]) * (bboxes2[..., 3] - bboxes2[..., 1])
+        area1 = (bboxes1[..., 2] - bboxes1[..., 0]) * (
+            bboxes1[..., 3] - bboxes1[..., 1]
+        )
+        area2 = (bboxes2[..., 2] - bboxes2[..., 0]) * (
+            bboxes2[..., 3] - bboxes2[..., 1]
+        )
         iou = wh / (area1 + area2 - wh + epsilon)
 
         # Calculate center points
@@ -251,7 +273,7 @@ class AssociationFunction:
         h2 = h2 + epsilon
         h1 = h1 + epsilon
         arctan_diff = np.arctan(w2 / h2) - np.arctan(w1 / h1)
-        v = (4 / (np.pi ** 2)) * (arctan_diff ** 2)
+        v = (4 / (np.pi**2)) * (arctan_diff**2)
 
         # Calculate alpha
         S = 1 - iou
@@ -284,9 +306,9 @@ class AssociationFunction:
         h = np.maximum(0.0, yy2 - yy1)
         wh = w * h
         iou = wh / (
-                (bboxes1[..., 2] - bboxes1[..., 0]) * (bboxes1[..., 3] - bboxes1[..., 1]) +
-                (bboxes2[..., 2] - bboxes2[..., 0]) * (bboxes2[..., 3] - bboxes2[..., 1]) -
-                wh
+            (bboxes1[..., 2] - bboxes1[..., 0]) * (bboxes1[..., 3] - bboxes1[..., 1])
+            + (bboxes2[..., 2] - bboxes2[..., 0]) * (bboxes2[..., 3] - bboxes2[..., 1])
+            - wh
         )
 
         centerx1 = (bboxes1[..., 0] + bboxes1[..., 2]) / 2.0
@@ -335,10 +357,12 @@ class AssociationFunction:
             "ciou": AssociationFunction.ciou_batch,
             "diou": AssociationFunction.diou_batch,
             "centroid": self.centroid_batch,  # only not being staticmethod
-            "centroid_obb": self.centroid_batch_obb
+            "centroid_obb": self.centroid_batch_obb,
         }
 
         if asso_mode not in ASSO_FUNCS:
-            raise ValueError(f"Invalid association mode: {asso_mode}. Choose from {list(ASSO_FUNCS.keys())}")
+            raise ValueError(
+                f"Invalid association mode: {asso_mode}. Choose from {list(ASSO_FUNCS.keys())}"
+            )
 
         return ASSO_FUNCS[asso_mode]

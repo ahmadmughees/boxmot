@@ -35,23 +35,26 @@ def convert_x_to_bbox(x, score=None):
     r = x[3]
     w = 0 if r <= 0 else r * h
     if score is None:
-        return np.array([x[0] - w / 2.0, x[1] - h / 2.0,
-                         x[0] + w / 2.0, x[1] + h / 2.0]).reshape((1, 4))
-    return np.array([x[0] - w / 2.0, x[1] - h / 2.0,
-                     x[0] + w / 2.0, x[1] + h / 2.0, score]).reshape((1, 5))
+        return np.array(
+            [x[0] - w / 2.0, x[1] - h / 2.0, x[0] + w / 2.0, x[1] + h / 2.0]
+        ).reshape((1, 4))
+    return np.array(
+        [x[0] - w / 2.0, x[1] - h / 2.0, x[0] + w / 2.0, x[1] + h / 2.0, score]
+    ).reshape((1, 5))
 
 
 class KalmanBoxTracker:
     """
     Single object tracker using a Kalman filter.
     """
+
     count = 0
 
     def __init__(self, det, max_obs, emb: Optional[np.ndarray] = None):
         KalmanBoxTracker.count += 1
 
         self.time_since_update = 0
-        self.id = KalmanBoxTracker.count 
+        self.id = KalmanBoxTracker.count
         self.kf = KalmanFilter(convert_bbox_to_z(det[:4]))
         self.conf = det[4]
         self.cls = det[5]
@@ -104,13 +107,11 @@ class KalmanBoxTracker:
 
 
 class BoostTrack(BaseTracker):
-
     def __init__(
         self,
         reid_weights,
         device,
         half: bool,
-
         max_age: int = 60,
         min_hits: int = 3,
         det_thresh: float = 0.6,
@@ -118,7 +119,6 @@ class BoostTrack(BaseTracker):
         use_ecc: bool = True,
         min_box_area: int = 10,
         aspect_ratio_thresh: bool = 1.6,
-
         # BoostTrack parameters
         lambda_iou: float = 0.5,
         lambda_mhd: float = 0.25,
@@ -127,12 +127,10 @@ class BoostTrack(BaseTracker):
         use_duo_boost: bool = True,
         dlo_boost_coef: float = 0.65,
         s_sim_corr: bool = False,
-    
         # BoostTrack++ parameters
         use_rich_s: bool = False,
         use_sb: bool = False,
         use_vt: bool = False,
-
         with_reid: bool = False,
     ):
         super().__init__()
@@ -140,13 +138,15 @@ class BoostTrack(BaseTracker):
         self.trackers: List[KalmanBoxTracker] = []
 
         # Parameters for BoostTrack (these can be tuned as needed)
-        self.max_age = max_age            # maximum allowed frames without update
-        self.min_hits = min_hits          # minimum hits to output a track
-        self.det_thresh = det_thresh      # detection confidence threshold
-        self.iou_threshold = iou_threshold   # association IoU threshold
+        self.max_age = max_age  # maximum allowed frames without update
+        self.min_hits = min_hits  # minimum hits to output a track
+        self.det_thresh = det_thresh  # detection confidence threshold
+        self.iou_threshold = iou_threshold  # association IoU threshold
         # self.use_ecc = use_ecc            # use ECC for camera motion compensation
         self.min_box_area = min_box_area  # minimum box area for detections
-        self.aspect_ratio_thresh = aspect_ratio_thresh  # aspect ratio threshold for detections
+        self.aspect_ratio_thresh = (
+            aspect_ratio_thresh  # aspect ratio threshold for detections
+        )
 
         self.lambda_iou = lambda_iou
         self.lambda_mhd = lambda_mhd
@@ -162,18 +162,24 @@ class BoostTrack(BaseTracker):
 
         self.with_reid = with_reid
 
-        self.reid_model = ReidAutoBackend(weights=reid_weights, device=device, half=half).model if with_reid else None
+        self.reid_model = (
+            ReidAutoBackend(weights=reid_weights, device=device, half=half).model
+            if with_reid
+            else None
+        )
         self.ecc = ECC(scale=350, video_name=None, use_cache=True) if use_ecc else None
 
-    def update(self, dets: np.ndarray, img: np.ndarray, embs: Optional[np.ndarray] = None) -> np.ndarray:
+    def update(
+        self, dets: np.ndarray, img: np.ndarray, embs: Optional[np.ndarray] = None
+    ) -> np.ndarray:
         """
         Update the tracker with detections and an image.
-        
+
         Args:
           dets (np.ndarray): Detection boxes in the format [[x1,y1,x2,y2,score], ...]
           img (np.ndarray): The current image frame.
           embs (Optional[np.ndarray]): Optional precomputed embeddings.
-          
+
         Returns:
           np.ndarray: Tracked objects in the format
                       [x1, y1, x2, y2, id, confidence, cls, det_ind]
@@ -193,7 +199,7 @@ class BoostTrack(BaseTracker):
 
         trks = []
         confs = []
-        
+
         for trk in self.trackers:
             pos = trk.predict()[0]
             conf = trk.get_confidence()
@@ -226,7 +232,10 @@ class BoostTrack(BaseTracker):
             if dets_embs.shape[0] == 0:
                 emb_cost = np.empty((0, tracker_embs.shape[0]))
             else:
-                emb_cost = dets_embs.reshape(dets_embs.shape[0], -1) @ tracker_embs.reshape((tracker_embs.shape[0], -1)).T
+                emb_cost = (
+                    dets_embs.reshape(dets_embs.shape[0], -1)
+                    @ tracker_embs.reshape((tracker_embs.shape[0], -1)).T
+                )
         else:
             emb_cost = None
 
@@ -243,10 +252,10 @@ class BoostTrack(BaseTracker):
             lambda_iou=self.lambda_iou,
             lambda_mhd=self.lambda_mhd,
             lambda_shape=self.lambda_shape,
-            s_sim_corr=self.s_sim_corr
+            s_sim_corr=self.s_sim_corr,
         )
 
-        if dets.size > 0:   
+        if dets.size > 0:
             trust = (dets[:, 4] - self.det_thresh) / (1 - self.det_thresh)
             af = 0.95
             dets_alpha = af + (1 - af) * (1 - trust)
@@ -259,19 +268,37 @@ class BoostTrack(BaseTracker):
 
         for i in unmatched_dets:
             if dets[i, 4] >= self.det_thresh:
-                self.trackers.append(KalmanBoxTracker(dets[i, :], max_obs=self.max_obs, emb=dets_embs[i]))
+                self.trackers.append(
+                    KalmanBoxTracker(dets[i, :], max_obs=self.max_obs, emb=dets_embs[i])
+                )
 
         outputs = []
         self.active_tracks = []
         for trk in self.trackers:
             d = trk.get_state()[0]
             if (trk.time_since_update < 1) and (
-                    trk.hit_streak >= self.min_hits or self.frame_count <= self.min_hits):
+                trk.hit_streak >= self.min_hits or self.frame_count <= self.min_hits
+            ):
                 # Format: [x1, y1, x2, y2, id, confidence, cls, det_ind]
-                outputs.append(np.array([d[0], d[1], d[2], d[3], trk.id + 1, trk.conf, trk.cls, trk.det_ind]))
+                outputs.append(
+                    np.array(
+                        [
+                            d[0],
+                            d[1],
+                            d[2],
+                            d[3],
+                            trk.id + 1,
+                            trk.conf,
+                            trk.cls,
+                            trk.det_ind,
+                        ]
+                    )
+                )
                 self.active_tracks.append(trk)
-            
-        self.trackers = [trk for trk in self.trackers if trk.time_since_update <= self.max_age]
+
+        self.trackers = [
+            trk for trk in self.trackers if trk.time_since_update <= self.max_age
+        ]
 
         if len(outputs) == 0:
             return np.empty((0, 8))
@@ -283,7 +310,6 @@ class BoostTrack(BaseTracker):
             self.ecc.save_cache()
 
     def filter_outputs(self, outputs: np.ndarray) -> np.ndarray:
-
         w_arr = outputs[:, 2] - outputs[:, 0]
         h_arr = outputs[:, 3] - outputs[:, 1]
 
@@ -292,13 +318,19 @@ class BoostTrack(BaseTracker):
 
         return outputs[vertical_filter & area_filter]
 
-    def get_iou_matrix(self, detections: np.ndarray, buffered: bool = False) -> np.ndarray:
+    def get_iou_matrix(
+        self, detections: np.ndarray, buffered: bool = False
+    ) -> np.ndarray:
         trackers = np.zeros((len(self.trackers), 5))
         for t, trk in enumerate(trackers):
             pos = self.trackers[t].get_state()[0]
             trk[:] = [pos[0], pos[1], pos[2], pos[3], self.trackers[t].get_confidence()]
 
-        return iou_batch(detections, trackers) if not buffered else soft_biou_batch(detections, trackers)
+        return (
+            iou_batch(detections, trackers)
+            if not buffered
+            else soft_biou_batch(detections, trackers)
+        )
 
     def get_mh_dist_matrix(self, detections: np.ndarray, n_dims: int = 4) -> np.ndarray:
         if len(self.trackers) == 0:
@@ -312,8 +344,10 @@ class BoostTrack(BaseTracker):
         for i, trk in enumerate(self.trackers):
             x[i] = trk.kf.x[:n_dims]
             sigma_inv[i] = np.reciprocal(np.diag(trk.kf.covariance[:n_dims, :n_dims]))
-        return ((z.reshape((-1, 1, n_dims)) - x.reshape((1, -1, n_dims))) ** 2 *
-                sigma_inv.reshape((1, -1, n_dims))).sum(axis=2)
+        return (
+            (z.reshape((-1, 1, n_dims)) - x.reshape((1, -1, n_dims))) ** 2
+            * sigma_inv.reshape((1, -1, n_dims))
+        ).sum(axis=2)
 
     def duo_confidence_boost(self, detections: np.ndarray) -> np.ndarray:
         if len(detections) == 0:
@@ -330,27 +364,32 @@ class BoostTrack(BaseTracker):
         if len(boost_inds) == 0:
             return detections
 
-        bdiou = iou_batch(detections[boost_inds], detections[boost_inds]) - np.eye(len(boost_inds))
+        bdiou = iou_batch(detections[boost_inds], detections[boost_inds]) - np.eye(
+            len(boost_inds)
+        )
         bdiou_max = bdiou.max(axis=1)
         remaining = boost_inds[bdiou_max <= iou_limit]
         args = np.where(bdiou_max > iou_limit)[0]
         for i in range(len(args)):
             bi = args[i]
             tmp = np.where(bdiou[bi] > iou_limit)[0]
-            args_tmp = np.append(np.intersect1d(boost_inds[args], boost_inds[tmp]), boost_inds[bi])
+            args_tmp = np.append(
+                np.intersect1d(boost_inds[args], boost_inds[tmp]), boost_inds[bi]
+            )
             conf_max = np.max(detections[args_tmp, 4])
             if detections[boost_inds[bi], 4] == conf_max:
                 remaining = np.concatenate([remaining, [boost_inds[bi]]])
         mask_boost = np.zeros_like(detections[:, 4], dtype=bool)
         mask_boost[remaining] = True
-        detections[:, 4] = np.where(mask_boost, self.det_thresh + 1e-4, detections[:, 4])
+        detections[:, 4] = np.where(
+            mask_boost, self.det_thresh + 1e-4, detections[:, 4]
+        )
         return detections
-
 
     def dlo_confidence_boost(self, detections: np.ndarray) -> np.ndarray:
         if len(detections) == 0:
             return detections
-        
+
         sbiou_matrix = self.get_iou_matrix(detections, True)
         if sbiou_matrix.size == 0:
             return detections
@@ -376,16 +415,21 @@ class BoostTrack(BaseTracker):
             max_s = S.max(1)
             alpha = 0.65
             detections[:, 4] = np.maximum(
-                detections[:, 4],
-                alpha * detections[:, 4] + (1 - alpha) * max_s ** 1.5)
+                detections[:, 4], alpha * detections[:, 4] + (1 - alpha) * max_s**1.5
+            )
         if self.use_vt:
             threshold_s = 0.95
             threshold_e = 0.8
             n_steps = 20
             # alpha = (threshold_s - threshold_e) / n_steps # todo alpha is not being used probably a bug
-            tmp = (S > np.maximum(
-                threshold_s - np.array([trk.time_since_update - 1 for trk in self.trackers]),
-                                    threshold_e)).max(1)
+            tmp = (
+                S
+                > np.maximum(
+                    threshold_s
+                    - np.array([trk.time_since_update - 1 for trk in self.trackers]),
+                    threshold_e,
+                )
+            ).max(1)
             scores = detections[:, 4].copy()
             scores[tmp] = np.maximum(scores[tmp], self.det_thresh + 1e-5)
             detections[:, 4] = scores

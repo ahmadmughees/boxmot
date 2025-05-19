@@ -9,7 +9,6 @@ from abc import ABC, abstractmethod
 
 
 class YoloInterface(ABC):
-
     @abstractmethod
     def __call__(self, im):
         pass
@@ -23,7 +22,6 @@ class YoloInterface(ABC):
         pass
 
     def get_scaling_factors(self, im, im0):
-
         # im to im0 factor for predictions
         im0_w = im0.shape[1]
         im0_h = im0.shape[0]
@@ -51,6 +49,6 @@ class YoloInterface(ABC):
         model_type = None
         for key in l:
             if Path(key).stem in str(model.name):
-                model_type = str(Path(key).with_suffix(''))
+                model_type = str(Path(key).with_suffix(""))
                 break
         return model_type

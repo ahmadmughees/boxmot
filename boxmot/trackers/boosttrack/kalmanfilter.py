@@ -12,7 +12,9 @@ class ConstantNoise:
 
     def get_init_state_cov(self) -> np.ndarray:
         p = np.eye(self.x_dim)
-        p[4:, 4:] *= 1000.0  # give high uncertainty to the unobservable initial velocities
+        p[4:, 4:] *= (
+            1000.0  # give high uncertainty to the unobservable initial velocities
+        )
         p *= 10.0
         return p
 
@@ -43,13 +45,9 @@ class KalmanFilter:
 
     """
 
-    def __init__(self,
-            z: np.ndarray,
-            ndim: int = 8,
-            dt: int = 1,
-            id: int = -1):
+    def __init__(self, z: np.ndarray, ndim: int = 8, dt: int = 1, id: int = -1):
         if z.ndim == 2:
-            z = deepcopy(z.reshape((-1, )))
+            z = deepcopy(z.reshape((-1,)))
 
         self.dt = dt
         self.ndim = ndim
@@ -67,8 +65,9 @@ class KalmanFilter:
         self.covariance = self.cov_update_policy.get_init_state_cov()
         self.id = id
 
-    def predict(self, mean: Optional[np.ndarray] = None,
-                covariance: Optional[np.ndarray] = None):
+    def predict(
+        self, mean: Optional[np.ndarray] = None, covariance: Optional[np.ndarray] = None
+    ):
         """Run Kalman filter prediction step.
 
         Parameters
@@ -95,8 +94,10 @@ class KalmanFilter:
         motion_cov = self.cov_update_policy.get_q()
 
         mean = np.dot(self._motion_mat, mean)
-        covariance = np.linalg.multi_dot((
-            self._motion_mat, covariance, self._motion_mat.T)) + motion_cov
+        covariance = (
+            np.linalg.multi_dot((self._motion_mat, covariance, self._motion_mat.T))
+            + motion_cov
+        )
 
         if update:
             self.x = mean
@@ -118,8 +119,9 @@ class KalmanFilter:
         innovation_cov = self.cov_update_policy.get_r()
 
         mean = np.dot(self._update_mat, self.x)
-        covariance = np.linalg.multi_dot((
-            self._update_mat, self.covariance, self._update_mat.T))
+        covariance = np.linalg.multi_dot(
+            (self._update_mat, self.covariance, self._update_mat.T)
+        )
         return mean, covariance + innovation_cov
 
     def update(self, z: np.ndarray):
@@ -133,19 +135,23 @@ class KalmanFilter:
         """
 
         if z.ndim == 2:
-            z = deepcopy(z.reshape((-1, )))
+            z = deepcopy(z.reshape((-1,)))
         projected_mean, projected_cov = self.project()
 
         chol_factor, lower = scipy.linalg.cho_factor(
-            projected_cov, lower=True, check_finite=False)
+            projected_cov, lower=True, check_finite=False
+        )
         kalman_gain = scipy.linalg.cho_solve(
-            (chol_factor, lower), np.dot(self.covariance, self._update_mat.T).T,
-            check_finite=False).T
+            (chol_factor, lower),
+            np.dot(self.covariance, self._update_mat.T).T,
+            check_finite=False,
+        ).T
 
         innovation = z - projected_mean
 
         self.x = self.x + np.dot(innovation, kalman_gain.T)
-        self.covariance = self.covariance - np.linalg.multi_dot((
-            kalman_gain, projected_cov, kalman_gain.T))
+        self.covariance = self.covariance - np.linalg.multi_dot(
+            (kalman_gain, projected_cov, kalman_gain.T)
+        )
 
         return self.x, self.covariance

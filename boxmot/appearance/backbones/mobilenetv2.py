@@ -83,7 +83,7 @@ class MobileNetV2(nn.Module):
         loss="softmax",
         fc_dims=None,
         dropout_p=None,
-        **kwargs
+        **kwargs,
     ):
         super(MobileNetV2, self).__init__()
         self.loss = loss
@@ -131,9 +131,9 @@ class MobileNetV2(nn.Module):
             self.feature_dim = input_dim
             return None
 
-        assert isinstance(
-            fc_dims, (list, tuple)
-        ), "fc_dims must be either list or tuple, but got {}".format(type(fc_dims))
+        assert isinstance(fc_dims, (list, tuple)), (
+            "fc_dims must be either list or tuple, but got {}".format(type(fc_dims))
+        )
 
         layers = []
         for dim in fc_dims:

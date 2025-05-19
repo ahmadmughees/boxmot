@@ -9,9 +9,13 @@ from boxmot.appearance.reid.auto_backend import ReidAutoBackend
 from boxmot.motion.cmc.sof import SOF
 from boxmot.motion.kalman_filters.aabb.xywh_kf import KalmanFilterXYWH
 from boxmot.trackers.imprassoc.basetrack import BaseTrack, TrackState
-from boxmot.utils.matching import (embedding_distance, fuse_score,
-                                   iou_distance, linear_assignment,
-                                   d_iou_distance)
+from boxmot.utils.matching import (
+    embedding_distance,
+    fuse_score,
+    iou_distance,
+    linear_assignment,
+    d_iou_distance,
+)
 from boxmot.utils.ops import xywh2xyxy, xyxy2xywh
 from boxmot.trackers.basetracker import BaseTracker
 
@@ -24,7 +28,7 @@ class STrack(BaseTrack):
         self.conf = det[4]
         self.cls = det[5]
         self.det_ind = det[6]
-        self.max_obs=max_obs
+        self.max_obs = max_obs
         self.kalman_filter = None
         self.mean, self.covariance = None, None
         self.is_activated = False
@@ -210,6 +214,7 @@ class ImprAssocTrack(BaseTracker):
         frame_rate (int, optional): Frame rate of the video being processed. Used to scale the track buffer size.
         with_reid (bool, optional): Whether to use ReID (Re-Identification) features for association.
     """
+
     def __init__(
         self,
         reid_weights: Path,
@@ -219,7 +224,7 @@ class ImprAssocTrack(BaseTracker):
         track_high_thresh: float = 0.6,
         track_low_thresh: float = 0.1,
         new_track_thresh: float = 0.7,
-        match_thresh: float = 0.65, # bigger?
+        match_thresh: float = 0.65,  # bigger?
         second_match_thresh: float = 0.19,
         overlap_thresh: float = 0.55,
         lambda_: float = 0.2,
@@ -228,7 +233,7 @@ class ImprAssocTrack(BaseTracker):
         appearance_thresh: float = 0.25,
         cmc_method: str = "sparseOptFlow",
         frame_rate=30,
-        with_reid: bool = True
+        with_reid: bool = True,
     ):
         super().__init__(per_class=per_class)
         self.active_tracks = []  # type: list[STrack]
@@ -256,17 +261,16 @@ class ImprAssocTrack(BaseTracker):
 
         self.with_reid = with_reid
         if self.with_reid:
-            rab = ReidAutoBackend(
-                weights=reid_weights, device=device, half=half
-            )
+            rab = ReidAutoBackend(weights=reid_weights, device=device, half=half)
             self.model = rab.get_backend()
 
         self.cmc = SOF()
 
-
     @BaseTracker.setup_decorator
     @BaseTracker.per_class_decorator
-    def update(self, dets: np.ndarray, img: np.ndarray, embs: np.ndarray = None) -> np.ndarray:
+    def update(
+        self, dets: np.ndarray, img: np.ndarray, embs: np.ndarray = None
+    ) -> np.ndarray:
         self.check_inputs(dets, img)
 
         self.frame_count += 1
@@ -281,7 +285,9 @@ class ImprAssocTrack(BaseTracker):
         confs = dets[:, 4]
 
         # find second round association detections
-        second_mask = np.logical_and(confs > self.track_low_thresh, confs < self.track_high_thresh)
+        second_mask = np.logical_and(
+            confs > self.track_low_thresh, confs < self.track_high_thresh
+        )
         dets_second = dets[second_mask]
 
         # find first round association detections
@@ -300,9 +306,14 @@ class ImprAssocTrack(BaseTracker):
         if len(dets) > 0:
             """Detections"""
             if self.with_reid:
-                detections = [STrack(det, f, max_obs=self.max_obs) for (det, f) in zip(dets_first, features_high)]
+                detections = [
+                    STrack(det, f, max_obs=self.max_obs)
+                    for (det, f) in zip(dets_first, features_high)
+                ]
             else:
-                detections = [STrack(det, max_obs=self.max_obs) for (det) in np.array(dets_first)]
+                detections = [
+                    STrack(det, max_obs=self.max_obs) for (det) in np.array(dets_first)
+                ]
         else:
             detections = []
 
@@ -317,14 +328,14 @@ class ImprAssocTrack(BaseTracker):
             else:
                 active_tracks.append(track)
 
-        '''Improved Association: First they calc the cost matrix of the high
+        """Improved Association: First they calc the cost matrix of the high
         detections(func_1 -> cost_h), then the calc the cost matrix of the low
         detections (func_2 -> cost_l) and get the max values of both. Then
         B = det_h_max / det_l_max.
         Finally they calc cost = concat(cost_h, B*cost_l) for the matching
-        '''
+        """
 
-        ''' Step 2: First association, with high score detection boxes'''
+        """ Step 2: First association, with high score detection boxes"""
         strack_pool = joint_stracks(active_tracks, self.lost_stracks)
 
         # Fix camera motion
@@ -338,7 +349,7 @@ class ImprAssocTrack(BaseTracker):
         # Associate with high score detection boxes
         d_ious_dists = d_iou_distance(strack_pool, detections)
         ious = 1 - iou_distance(strack_pool, detections)
-        ious_dists_mask = (ious < self.proximity_thresh) # o_min in ImprAssoc paper
+        ious_dists_mask = ious < self.proximity_thresh  # o_min in ImprAssoc paper
 
         num_high_detections = len(detections)
 
@@ -360,8 +371,8 @@ class ImprAssocTrack(BaseTracker):
             # dists[ious_dists_mask] = 1.0
 
             # Improved Association Version (CD)
-            emb_dists = embedding_distance(strack_pool, detections) # high dets
-            dists = self.lambda_*d_ious_dists + (1-self.lambda_)*emb_dists
+            emb_dists = embedding_distance(strack_pool, detections)  # high dets
+            dists = self.lambda_ * d_ious_dists + (1 - self.lambda_) * emb_dists
             dists[ious_dists_mask] = self.match_thresh + 0.00001
         else:
             dists = d_ious_dists
@@ -371,21 +382,25 @@ class ImprAssocTrack(BaseTracker):
 
         # association the untrack to the low score detections
         if len(dets_second) > 0:
-            '''Detections'''
-            detections_second = [STrack(det, max_obs=self.max_obs) for
-                                 (det) in np.array(dets_second)]
+            """Detections"""
+            detections_second = [
+                STrack(det, max_obs=self.max_obs) for (det) in np.array(dets_second)
+            ]
         else:
             detections_second = []
         dists_second = iou_distance(strack_pool, detections_second)
-        dists_second_mask = (dists_second > self.second_match_thresh) # this is what the paper used
+        dists_second_mask = (
+            dists_second > self.second_match_thresh
+        )  # this is what the paper used
         dists_second[dists_second_mask] = self.second_match_thresh + 0.00001
 
+        B = self.match_thresh / self.second_match_thresh
 
-        B = self.match_thresh/self.second_match_thresh
+        combined_dists = np.concatenate((dists, B * dists_second), axis=1)
 
-        combined_dists = np.concatenate((dists, B*dists_second), axis=1)
-
-        matches, track_conf_remain, det_remain = linear_assignment(combined_dists, thresh=self.match_thresh)
+        matches, track_conf_remain, det_remain = linear_assignment(
+            combined_dists, thresh=self.match_thresh
+        )
 
         # concat detections so that it all works
         detections = np.concatenate((detections, detections_second), axis=0)
@@ -400,7 +415,7 @@ class ImprAssocTrack(BaseTracker):
                 track.re_activate(det, self.frame_count, new_id=False)
                 refind_stracks.append(track)
 
-        '''Deal with lost tracks'''
+        """Deal with lost tracks"""
 
         # left over confirmed tracks get lost
         for it in track_conf_remain:
@@ -409,15 +424,19 @@ class ImprAssocTrack(BaseTracker):
                 track.mark_lost()
                 lost_stracks.append(track)
 
-        '''now do OAI from Improved Association paper'''
+        """now do OAI from Improved Association paper"""
         # calc the iou between every unmatched det and all tracks if the max iou
         # for a det D is above overlap_thresh, discard it.
         sdet_remain = [detections[i] for i in det_remain]
 
         if self.with_reid:
             # if we don't need to recompute features
-            if (self.new_track_thresh >= self.track_high_thresh) and features_high is not None:
-                features = [features_high[i] for i in det_remain if i < num_high_detections]
+            if (
+                self.new_track_thresh >= self.track_high_thresh
+            ) and features_high is not None:
+                features = [
+                    features_high[i] for i in det_remain if i < num_high_detections
+                ]
             else:
                 bboxes = [track.xyxy for track in sdet_remain]
                 bboxes = np.array(bboxes)
@@ -426,7 +445,7 @@ class ImprAssocTrack(BaseTracker):
 
         unmatched_overlap = 1 - iou_distance(strack_pool, sdet_remain)
 
-        for det_ind in range(unmatched_overlap.shape[1]): # loop over the rows
+        for det_ind in range(unmatched_overlap.shape[1]):  # loop over the rows
             if len(unmatched_overlap[:, det_ind]) != 0:
                 if np.max(unmatched_overlap[:, det_ind]) < self.overlap_thresh:
                     # now initialize it
@@ -444,7 +463,6 @@ class ImprAssocTrack(BaseTracker):
                     if self.with_reid:
                         track.update_features(features[det_ind])
                     activated_starcks.append(track)
-
 
         """ Step 6: Update state"""
         for track in self.lost_stracks:

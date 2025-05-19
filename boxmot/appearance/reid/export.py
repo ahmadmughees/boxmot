@@ -23,33 +23,59 @@ def parse_args():
     Parse command-line arguments for the ReID export script.
     """
     parser = argparse.ArgumentParser(description="ReID Export Script")
-    parser.add_argument("--batch-size", type=int, default=1, help="Batch size for export")
-    parser.add_argument("--imgsz", "--img", "--img-size",
-                        nargs="+", type=int, default=[256, 128],
-                        help="Image size in the format: height width")
-    parser.add_argument("--device", default="cpu",
-                        help="CUDA device (e.g., '0', '0,1,2,3', or 'cpu')")
-    parser.add_argument("--optimize", action="store_true",
-                        help="Optimize TorchScript for mobile (CPU export only)")
-    parser.add_argument("--dynamic", action="store_true",
-                        help="Enable dynamic axes for ONNX/TF/TensorRT export")
-    parser.add_argument("--simplify", action="store_true",
-                        help="Simplify ONNX model")
-    parser.add_argument("--opset", type=int, default=12,
-                        help="ONNX opset version")
-    parser.add_argument("--workspace", type=int, default=4,
-                        help="TensorRT workspace size (GB)")
-    parser.add_argument("--verbose", action="store_true",
-                        help="Enable verbose logging for TensorRT")
-    parser.add_argument("--weights", type=Path,
-                        default=WEIGHTS / "osnet_x0_25_msmt17.pt",
-                        help="Path to the model weights (.pt file)")
-    parser.add_argument("--half", action="store_true",
-                        help="Enable FP16 half-precision export (GPU only)")
-    parser.add_argument("--include", nargs="+",
-                        default=["torchscript"],
-                        help=("Export formats to include. Options: torchscript, onnx, "
-                              "openvino, engine, tflite"))
+    parser.add_argument(
+        "--batch-size", type=int, default=1, help="Batch size for export"
+    )
+    parser.add_argument(
+        "--imgsz",
+        "--img",
+        "--img-size",
+        nargs="+",
+        type=int,
+        default=[256, 128],
+        help="Image size in the format: height width",
+    )
+    parser.add_argument(
+        "--device", default="cpu", help="CUDA device (e.g., '0', '0,1,2,3', or 'cpu')"
+    )
+    parser.add_argument(
+        "--optimize",
+        action="store_true",
+        help="Optimize TorchScript for mobile (CPU export only)",
+    )
+    parser.add_argument(
+        "--dynamic",
+        action="store_true",
+        help="Enable dynamic axes for ONNX/TF/TensorRT export",
+    )
+    parser.add_argument("--simplify", action="store_true", help="Simplify ONNX model")
+    parser.add_argument("--opset", type=int, default=12, help="ONNX opset version")
+    parser.add_argument(
+        "--workspace", type=int, default=4, help="TensorRT workspace size (GB)"
+    )
+    parser.add_argument(
+        "--verbose", action="store_true", help="Enable verbose logging for TensorRT"
+    )
+    parser.add_argument(
+        "--weights",
+        type=Path,
+        default=WEIGHTS / "osnet_x0_25_msmt17.pt",
+        help="Path to the model weights (.pt file)",
+    )
+    parser.add_argument(
+        "--half",
+        action="store_true",
+        help="Enable FP16 half-precision export (GPU only)",
+    )
+    parser.add_argument(
+        "--include",
+        nargs="+",
+        default=["torchscript"],
+        help=(
+            "Export formats to include. Options: torchscript, onnx, "
+            "openvino, engine, tflite"
+        ),
+    )
     return parser.parse_args()
 
 
@@ -87,16 +113,22 @@ def setup_model(args):
     # Select the correct device
     args.device = select_device(args.device)
     if args.half and args.device.type == "cpu":
-        raise AssertionError("--half only compatible with GPU export, use --device 0 for GPU")
+        raise AssertionError(
+            "--half only compatible with GPU export, use --device 0 for GPU"
+        )
 
     # Initialize backend model using the auto backend
-    auto_backend = ReidAutoBackend(weights=args.weights, device=args.device, half=args.half)
+    auto_backend = ReidAutoBackend(
+        weights=args.weights, device=args.device, half=args.half
+    )
     _ = auto_backend.get_backend()  # Backend model is managed internally
 
     # Build and load the ReID model from the registry
     model_name = ReIDModelRegistry.get_model_name(args.weights)
     nr_classes = ReIDModelRegistry.get_nr_classes(args.weights)
-    pretrained = not (args.weights and args.weights.is_file() and args.weights.suffix == ".pt")
+    pretrained = not (
+        args.weights and args.weights.is_file() and args.weights.suffix == ".pt"
+    )
     model = ReIDModelRegistry.build_model(
         model_name,
         num_classes=nr_classes,
@@ -108,14 +140,18 @@ def setup_model(args):
 
     # Ensure --optimize is only used with CPU exports
     if args.optimize and args.device.type != "cpu":
-        raise AssertionError("--optimize not compatible with CUDA devices, use --device cpu")
+        raise AssertionError(
+            "--optimize not compatible with CUDA devices, use --device cpu"
+        )
 
     # Adjust image size if a specific weight type is detected
     if "lmbn" in str(args.weights):
         args.imgsz = [384, 128]
 
     # Create dummy input tensor for warming up the model
-    dummy_input = torch.empty(args.batch_size, 3, args.imgsz[0], args.imgsz[1]).to(args.device)
+    dummy_input = torch.empty(args.batch_size, 3, args.imgsz[0], args.imgsz[1]).to(
+        args.device
+    )
     for _ in range(2):
         _ = model(dummy_input)
 
@@ -139,33 +175,47 @@ def create_export_tasks(args, model, dummy_input):
     Returns:
         dict: Mapping of export format to a tuple (flag, exporter_class, export_args)
     """
-    torchscript_flag, onnx_flag, openvino_flag, engine_flag, tflite_flag = validate_export_formats(args.include)
+    torchscript_flag, onnx_flag, openvino_flag, engine_flag, tflite_flag = (
+        validate_export_formats(args.include)
+    )
     return {
         "torchscript": (
             torchscript_flag,
             TorchScriptExporter,
-            (model, dummy_input, args.weights, args.optimize)
+            (model, dummy_input, args.weights, args.optimize),
         ),
         "engine": (
             engine_flag,
             EngineExporter,
-            (model, dummy_input, args.weights, args.half, args.dynamic, args.simplify, args.verbose)
+            (
+                model,
+                dummy_input,
+                args.weights,
+                args.half,
+                args.dynamic,
+                args.simplify,
+                args.verbose,
+            ),
         ),
         "onnx": (
             onnx_flag,
             ONNXExporter,
-            (model, dummy_input, args.weights, args.opset, args.dynamic, args.half, args.simplify)
+            (
+                model,
+                dummy_input,
+                args.weights,
+                args.opset,
+                args.dynamic,
+                args.half,
+                args.simplify,
+            ),
         ),
-        "tflite": (
-            tflite_flag,
-            TFLiteExporter,
-            (model, dummy_input, args.weights)
-        ),
+        "tflite": (tflite_flag, TFLiteExporter, (model, dummy_input, args.weights)),
         "openvino": (
             openvino_flag,
             OpenVINOExporter,
-            (model, dummy_input, args.weights, args.half)
-        )
+            (model, dummy_input, args.weights, args.half),
+        ),
     }
 
 

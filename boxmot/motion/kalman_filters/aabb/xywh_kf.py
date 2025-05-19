@@ -21,7 +21,7 @@ class KalmanFilterXYWH(BaseKalmanFilter):
             10 * self._std_weight_velocity * measurement[2],
             10 * self._std_weight_velocity * measurement[3],
             10 * self._std_weight_velocity * measurement[2],
-            10 * self._std_weight_velocity * measurement[3]
+            10 * self._std_weight_velocity * measurement[3],
         ]
 
     def _get_process_noise_std(self, mean: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
@@ -29,36 +29,40 @@ class KalmanFilterXYWH(BaseKalmanFilter):
             self._std_weight_position * mean[2],
             self._std_weight_position * mean[3],
             self._std_weight_position * mean[2],
-            self._std_weight_position * mean[3]
+            self._std_weight_position * mean[3],
         ]
         std_vel = [
             self._std_weight_velocity * mean[2],
             self._std_weight_velocity * mean[3],
             self._std_weight_velocity * mean[2],
-            self._std_weight_velocity * mean[3]
+            self._std_weight_velocity * mean[3],
         ]
         return std_pos, std_vel
 
-    def _get_measurement_noise_std(self, mean: np.ndarray, confidence: float) -> np.ndarray:
+    def _get_measurement_noise_std(
+        self, mean: np.ndarray, confidence: float
+    ) -> np.ndarray:
         std_noise = [
             self._std_weight_position * mean[2],
             self._std_weight_position * mean[3],
             self._std_weight_position * mean[2],
-            self._std_weight_position * mean[3]
+            self._std_weight_position * mean[3],
         ]
         return std_noise
-    
-    def _get_multi_process_noise_std(self, mean: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+
+    def _get_multi_process_noise_std(
+        self, mean: np.ndarray
+    ) -> Tuple[np.ndarray, np.ndarray]:
         std_pos = [
             self._std_weight_position * mean[:, 2],
             self._std_weight_position * mean[:, 3],
             self._std_weight_position * mean[:, 2],
-            self._std_weight_position * mean[:, 3]
+            self._std_weight_position * mean[:, 3],
         ]
         std_vel = [
             self._std_weight_velocity * mean[:, 2],
             self._std_weight_velocity * mean[:, 3],
             self._std_weight_velocity * mean[:, 2],
-            self._std_weight_velocity * mean[:, 3]
+            self._std_weight_velocity * mean[:, 3],
         ]
         return std_pos, std_vel

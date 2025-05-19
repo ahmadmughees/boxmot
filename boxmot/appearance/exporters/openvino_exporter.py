@@ -6,9 +6,8 @@ from boxmot.utils import logger as LOGGER
 
 class OpenVINOExporter(BaseExporter):
     required_packages = ("openvino-dev>=2023.3",)
-    
+
     def export(self):
-        
         import openvino.runtime as ov
         from openvino.tools import mo
 
@@ -23,5 +22,5 @@ class OpenVINOExporter(BaseExporter):
             compress_to_fp16=self.half,
         )
         ov.serialize(ov_model, f_ov)
-        
+
         return f

@@ -6,7 +6,9 @@ import lap
 import numpy as np
 
 
-def shape_similarity(detects: np.ndarray, tracks: np.ndarray, s_sim_corr: bool) -> np.ndarray:
+def shape_similarity(
+    detects: np.ndarray, tracks: np.ndarray, s_sim_corr: bool
+) -> np.ndarray:
     if not s_sim_corr:
         return shape_similarity_v1(detects, tracks)
     return shape_similarity_v2(detects, tracks)
@@ -20,7 +22,9 @@ def shape_similarity_v1(detects: np.ndarray, tracks: np.ndarray) -> np.ndarray:
     dh = (detects[:, 3] - detects[:, 1]).reshape((-1, 1))
     tw = (tracks[:, 2] - tracks[:, 0]).reshape((1, -1))
     th = (tracks[:, 3] - tracks[:, 1]).reshape((1, -1))
-    return np.exp(-(np.abs(dw - tw) / np.maximum(dw, tw) + np.abs(dh - th) / np.maximum(dw, tw)))
+    return np.exp(
+        -(np.abs(dw - tw) / np.maximum(dw, tw) + np.abs(dh - th) / np.maximum(dw, tw))
+    )
 
 
 def shape_similarity_v2(detects: np.ndarray, tracks: np.ndarray) -> np.ndarray:
@@ -31,18 +35,25 @@ def shape_similarity_v2(detects: np.ndarray, tracks: np.ndarray) -> np.ndarray:
     dh = (detects[:, 3] - detects[:, 1]).reshape((-1, 1))
     tw = (tracks[:, 2] - tracks[:, 0]).reshape((1, -1))
     th = (tracks[:, 3] - tracks[:, 1]).reshape((1, -1))
-    return np.exp(-(np.abs(dw - tw) / np.maximum(dw, tw) + np.abs(dh - th) / np.maximum(dh, th)))
+    return np.exp(
+        -(np.abs(dw - tw) / np.maximum(dw, tw) + np.abs(dh - th) / np.maximum(dh, th))
+    )
 
 
-def MhDist_similarity(mahalanobis_distance: np.ndarray, softmax_temp: float = 1.0) -> np.ndarray:
-    limit = 13.2767  # 99% conf interval https://www.mathworks.com/help/stats/chi2inv.html
+def MhDist_similarity(
+    mahalanobis_distance: np.ndarray, softmax_temp: float = 1.0
+) -> np.ndarray:
+    limit = (
+        13.2767  # 99% conf interval https://www.mathworks.com/help/stats/chi2inv.html
+    )
     mahalanobis_distance = deepcopy(mahalanobis_distance)
     mask = mahalanobis_distance > limit
     mahalanobis_distance[mask] = limit
     mahalanobis_distance = limit - mahalanobis_distance
 
     mahalanobis_distance = np.exp(mahalanobis_distance / softmax_temp) / np.exp(
-        mahalanobis_distance / softmax_temp).sum(0).reshape((1, -1))
+        mahalanobis_distance / softmax_temp
+    ).sum(0).reshape((1, -1))
     mahalanobis_distance = np.where(mask, 0, mahalanobis_distance)
     return mahalanobis_distance
 
@@ -61,9 +72,11 @@ def iou_batch(bboxes1, bboxes2):
     w = np.maximum(0.0, xx2 - xx1)
     h = np.maximum(0.0, yy2 - yy1)
     wh = w * h
-    return wh / ((bboxes1[..., 2] - bboxes1[..., 0]) * (bboxes1[..., 3] - bboxes1[..., 1])
-            + (bboxes2[..., 2] - bboxes2[..., 0]) * (bboxes2[..., 3] - bboxes2[..., 1])
-            - wh)
+    return wh / (
+        (bboxes1[..., 2] - bboxes1[..., 0]) * (bboxes1[..., 3] - bboxes1[..., 1])
+        + (bboxes2[..., 2] - bboxes2[..., 0]) * (bboxes2[..., 3] - bboxes2[..., 1])
+        - wh
+    )
 
 
 def soft_biou_batch(bboxes1, bboxes2):
@@ -115,12 +128,13 @@ def match(cost_matrix: np.ndarray, threshold: float) -> np.ndarray:
 
 
 def linear_assignment(
-        detections: np.ndarray,
-        trackers: np.ndarray,
-        iou_matrix: np.ndarray,
-        cost_matrix: np.ndarray,
-        threshold: float,
-        emb_cost: Optional[np.ndarray] = None):
+    detections: np.ndarray,
+    trackers: np.ndarray,
+    iou_matrix: np.ndarray,
+    cost_matrix: np.ndarray,
+    threshold: float,
+    emb_cost: Optional[np.ndarray] = None,
+):
     if iou_matrix is None and cost_matrix is None:
         raise Exception("Both iou_matrix and cost_matrix are None!")
     if iou_matrix is None:
@@ -141,48 +155,64 @@ def linear_assignment(
     matches = []
     for m in matched_indices:
         valid_match = iou_matrix[m[0], m[1]] >= threshold or (
-            False if emb_cost is None else (iou_matrix[m[0], m[1]] >= threshold / 2 and emb_cost[m[0], m[1]] >= 0.75))
+            False
+            if emb_cost is None
+            else (
+                iou_matrix[m[0], m[1]] >= threshold / 2 and emb_cost[m[0], m[1]] >= 0.75
+            )
+        )
         if valid_match:
             matches.append(m.reshape(1, 2))
         else:
             unmatched_detections.append(m[0])
             unmatched_trackers.append(m[1])
 
-    matches = np.concatenate(matches, axis=0) if len(matches) else np.empty((0, 2), dtype=int)
-    return matches, np.array(unmatched_detections), np.array(unmatched_trackers), cost_matrix
+    matches = (
+        np.concatenate(matches, axis=0) if len(matches) else np.empty((0, 2), dtype=int)
+    )
+    return (
+        matches,
+        np.array(unmatched_detections),
+        np.array(unmatched_trackers),
+        cost_matrix,
+    )
 
 
 def associate(
-        detections,
-        trackers,
-        iou_threshold,
-        mahalanobis_distance: Optional[np.ndarray] = None,
-        track_confidence: Optional[np.ndarray] = None,
-        detection_confidence: Optional[np.ndarray] = None,
-        emb_cost: Optional[np.ndarray] = None,
-        lambda_iou: float = 0.5,
-        lambda_mhd: float = 0.25,
-        lambda_shape: float = 0.25,
-        s_sim_corr: bool = False,
+    detections,
+    trackers,
+    iou_threshold,
+    mahalanobis_distance: Optional[np.ndarray] = None,
+    track_confidence: Optional[np.ndarray] = None,
+    detection_confidence: Optional[np.ndarray] = None,
+    emb_cost: Optional[np.ndarray] = None,
+    lambda_iou: float = 0.5,
+    lambda_mhd: float = 0.25,
+    lambda_shape: float = 0.25,
+    s_sim_corr: bool = False,
 ):
     if len(trackers) == 0:
         return (
             np.empty((0, 2), dtype=int),
             np.arange(len(detections)),
             np.empty((0, 5), dtype=int),
-            np.empty((0, 0))
+            np.empty((0, 0)),
         )
     iou_matrix = iou_batch(detections, trackers)
 
     cost_matrix = deepcopy(iou_matrix)
 
     if detection_confidence is not None and track_confidence is not None:
-        conf = np.multiply(detection_confidence.reshape((-1, 1)), track_confidence.reshape((1, -1)))
+        conf = np.multiply(
+            detection_confidence.reshape((-1, 1)), track_confidence.reshape((1, -1))
+        )
         conf[iou_matrix < iou_threshold] = 0
 
         cost_matrix += lambda_iou * conf * iou_batch(detections, trackers)
     else:
-        warnings.warn("Detections or tracklet confidence is None and detection-tracklet confidence cannot be computed!")
+        warnings.warn(
+            "Detections or tracklet confidence is None and detection-tracklet confidence cannot be computed!"
+        )
         conf = None
 
     if mahalanobis_distance is not None and mahalanobis_distance.size > 0:
@@ -190,10 +220,14 @@ def associate(
 
         cost_matrix += lambda_mhd * mahalanobis_distance
         if conf is not None:
-            cost_matrix += lambda_shape * conf * shape_similarity(detections, trackers, s_sim_corr)
+            cost_matrix += (
+                lambda_shape * conf * shape_similarity(detections, trackers, s_sim_corr)
+            )
 
     if emb_cost is not None:
         lambda_emb = (1 + lambda_iou + lambda_shape + lambda_mhd) * 1.5
         cost_matrix += lambda_emb * emb_cost
 
-    return linear_assignment(detections, trackers, iou_matrix, cost_matrix, iou_threshold, emb_cost)
+    return linear_assignment(
+        detections, trackers, iou_matrix, cost_matrix, iou_threshold, emb_cost
+    )

@@ -6,7 +6,7 @@ from boxmot.utils import logger as LOGGER
 class TFLiteExporter(BaseExporter):
     required_packages = (
         "onnx2tf>=1.18.0",
-        "onnx>=1.16.1", 
+        "onnx>=1.16.1",
         "tensorflow==2.17.0",
         "tf_keras",  # required by 'onnx2tf' package
         "sng4onnx>=1.0.1",  # required by 'onnx2tf' package
@@ -17,15 +17,17 @@ class TFLiteExporter(BaseExporter):
         "onnxsim==0.4.33",
         "psutil==5.9.5",
         "ml_dtypes==0.3.2",
-        "ai_edge_litert>=1.2.0"
+        "ai_edge_litert>=1.2.0",
     )
-    cmds = '--extra-index-url https://pypi.ngc.nvidia.com'
-    
-    def export(self):
+    cmds = "--extra-index-url https://pypi.ngc.nvidia.com"
 
+    def export(self):
         import onnx2tf
-        input_onnx_file_path = str(self.file.with_suffix('.onnx'))
-        output_folder_path = input_onnx_file_path.replace(".onnx", f"_saved_model{os.sep}")
+
+        input_onnx_file_path = str(self.file.with_suffix(".onnx"))
+        output_folder_path = input_onnx_file_path.replace(
+            ".onnx", f"_saved_model{os.sep}"
+        )
         onnx2tf.convert(
             input_onnx_file_path=input_onnx_file_path,
             output_folder_path=output_folder_path,
