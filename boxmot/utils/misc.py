@@ -1,5 +1,6 @@
-from pathlib import Path
 import os
+from pathlib import Path
+
 
 def increment_path(path, exist_ok=False, sep="", mkdir=False):
     """

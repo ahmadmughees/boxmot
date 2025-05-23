@@ -1,10 +1,12 @@
+from abc import ABC, abstractmethod
+
 import cv2
-import torch
 import gdown
 import numpy as np
-from abc import ABC, abstractmethod
-from boxmot.utils import logger as LOGGER
+import torch
+
 from boxmot.appearance.reid.registry import ReIDModelRegistry
+from boxmot.utils import logger as LOGGER
 from boxmot.utils.checks import RequirementsChecker
 
 

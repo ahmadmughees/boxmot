@@ -1,18 +1,29 @@
-import pytest
-import numpy as np
 from pathlib import Path
-from boxmot.utils import WEIGHTS
 
+import numpy as np
+import pytest
 from numpy.testing import assert_allclose
+
 from boxmot import (
-    StrongSort, BotSort, DeepOcSort, OcSort, ByteTrack,
-    get_tracker_config, create_tracker,
+    BotSort,
+    ByteTrack,
+    DeepOcSort,
+    OcSort,
+    StrongSort,
+    create_tracker,
+    get_tracker_config,
+)
+from boxmot.trackers.deepocsort.deepocsort import (
+    KalmanBoxTracker as DeepOCSortKalmanBoxTracker,
 )
 from boxmot.trackers.ocsort.ocsort import KalmanBoxTracker as OCSortKalmanBoxTracker
-from boxmot.trackers.deepocsort.deepocsort import KalmanBoxTracker as DeepOCSortKalmanBoxTracker
+from boxmot.utils import WEIGHTS
 from tests.test_config import (
-    MOTION_ONLY_TRACKING_METHODS, MOTION_N_APPEARANCE_TRACKING_METHODS,
-    ALL_TRACKERS, PER_CLASS_TRACKERS, MOTION_N_APPEARANCE_TRACKING_NAMES
+    ALL_TRACKERS,
+    MOTION_N_APPEARANCE_TRACKING_METHODS,
+    MOTION_N_APPEARANCE_TRACKING_NAMES,
+    MOTION_ONLY_TRACKING_METHODS,
+    PER_CLASS_TRACKERS,
 )
 
 # --- existing tests ---

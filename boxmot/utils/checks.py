@@ -1,11 +1,12 @@
 # Mikel Broström 🔥 Yolo Tracking 🧾 AGPL-3.0 license
 
-import pkg_resources
-from boxmot.utils import logger as LOGGER
-from pathlib import Path
 import subprocess
+from pathlib import Path
+
+import pkg_resources
 
 from boxmot.utils import logger as LOGGER
+
 REQUIREMENTS = Path('requirements.txt')
 
 class RequirementsChecker:

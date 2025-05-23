@@ -1,4 +1,5 @@
 import os
+
 from boxmot.appearance.exporters.base_exporter import BaseExporter
 from boxmot.utils import logger as LOGGER
 

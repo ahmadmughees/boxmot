@@ -1,5 +1,7 @@
 import platform
+
 import torch
+
 from boxmot.appearance.exporters.base_exporter import BaseExporter
 from boxmot.appearance.exporters.onnx_exporter import ONNXExporter
 from boxmot.utils import logger as LOGGER

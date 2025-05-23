@@ -1,12 +1,12 @@
 # Mikel Broström 🔥 Yolo Tracking 🧾 AGPL-3.0 license
 
-import gdown
-import torch
-import numpy as np
 import cv2
+import gdown
+import numpy as np
+import torch
 from ultralytics.engine.results import Results
-from ultralytics.utils import ops
 from ultralytics.models.yolo.detect import DetectionPredictor
+from ultralytics.utils import ops
 from yolox.exp import get_exp
 from yolox.utils import postprocess
 from yolox.utils.model_utils import fuse_model

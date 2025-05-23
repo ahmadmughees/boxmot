@@ -1,5 +1,12 @@
 from boxmot import (
-    StrongSort, BotSort, DeepOcSort, OcSort, ByteTrack, BoostTrack, get_tracker_config, create_tracker,
+    BoostTrack,
+    BotSort,
+    ByteTrack,
+    DeepOcSort,
+    OcSort,
+    StrongSort,
+    create_tracker,
+    get_tracker_config,
 )
 
 MOTION_N_APPEARANCE_TRACKING_NAMES = ['botsort', 'deepocsort', 'strongsort', 'boosttrack']

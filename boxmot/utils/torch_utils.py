@@ -2,11 +2,13 @@
 
 import os
 import platform
+
 import torch
+
+from boxmot.utils import ROOT
 
 from .. import __version__
 from . import logger as LOGGER
-from boxmot.utils import ROOT
 
 
 def get_system_info():
